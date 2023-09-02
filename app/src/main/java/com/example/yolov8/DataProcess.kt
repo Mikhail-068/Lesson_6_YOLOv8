@@ -15,8 +15,9 @@ import kotlin.math.min
 
 class DataProcess(val context: Context) {
 
-    lateinit var classes: Array<String>
+    lateinit var classes: Array<String> // переменная для хранения labels
 
+    // блок с константами
     companion object {
         const val BATCH_SIZE = 1
         const val INPUT_SIZE = 640
@@ -25,18 +26,24 @@ class DataProcess(val context: Context) {
         const val LABEL_NAME = "yolov8n.txt"
     }
 
+    // функция для преобразования кадра с камеры в bitmap
     fun imageToBitmap(imageProxy: ImageProxy): Bitmap {
         val bitmap = imageProxy.toBitmap()
         return Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, true)
     }
 
+    // функция для преобразования bitmap в данные для НС
     fun bitmapToFloatBuffer(bitmap: Bitmap): FloatBuffer {
         val imageSTD = 255.0f
+
+        // создаем буфер для хранения информации о всех пикселях кадра, который будет передан в НС
         val buffer = FloatBuffer.allocate(BATCH_SIZE * PIXEL_SIZE * INPUT_SIZE * INPUT_SIZE)
-        buffer.rewind()
+        buffer.rewind() // смещаем указатель в начало буфера (такова особенность работы с таким типом данных в языке)
 
         val area = INPUT_SIZE * INPUT_SIZE
-        val bitmapData = IntArray(area) //한 사진에서 대한 정보, 640x640 사이즈
+        val bitmapData = IntArray(area) // буфер для данных bitmap
+
+        // получаем информацию о каждом пикселе картинки и пишем в буфер
         bitmap.getPixels(
             bitmapData,
             0,
@@ -45,28 +52,26 @@ class DataProcess(val context: Context) {
             0,
             bitmap.width,
             bitmap.height
-        ) // 배열에 정보 담기
+        )
 
-        //배열에서 하나씩 가져와서 buffer 에 담기
+        // заполняем выходной буфер для НС данными из bitmap (буквально перебираем каждый пиксель)
         for (i in 0 until INPUT_SIZE - 1) {
             for (j in 0 until INPUT_SIZE - 1) {
                 val idx = INPUT_SIZE * i + j
-                val pixelValue = bitmapData[idx]
-                // 위에서 부터 차례대로 R 값 추출, G 값 추출, B값 추출 -> 255로 나누어서 0~1 사이로 정규화
+                val pixelValue = bitmapData[idx] // берем конкретный пиксель
+
+                // извлекаем информацию по каждому каналу цвета пикселя
                 buffer.put(idx, ((pixelValue shr 16 and 0xff) / imageSTD))
                 buffer.put(idx + area, ((pixelValue shr 8 and 0xff) / imageSTD))
                 buffer.put(idx + area * 2, ((pixelValue and 0xff) / imageSTD))
-                //원리 bitmap == ARGB 형태의 32bit, R값의 시작은 16bit (16 ~ 23bit 가 R영역), 따라서 16bit 를 쉬프트
-                //그럼 A값이 사라진 RGB 값인 24bit 가 남는다. 이후 255와 AND 연산을 통해 맨 뒤 8bit 인 R값만 가져오고, 255로 나누어 정규화를 한다.
-                //다시 8bit 를 쉬프트 하여 R값을 제거한 G,B 값만 남은 곳에 다시 AND 연산, 255 정규화, 다시 반복해서 RGB 값을 buffer 에 담는다.
             }
         }
-        buffer.rewind() // position 0
+        buffer.rewind() // смещаем указатель в начало буфера (такова особенность работы с таким типом данных в языке)
         return buffer
     }
 
+    // функция для загрузки модели
     fun loadModel() {
-        // onnx 파일 불러오기
         val assetManager = context.assets
         val outputFile = File(context.filesDir.toString() + "/" + FILE_NAME)
 
@@ -81,8 +86,8 @@ class DataProcess(val context: Context) {
         }
     }
 
+    // функция для загрузки списка сущностей для распознавания
     fun loadLabel() {
-        // txt 파일 불러오기
         BufferedReader(InputStreamReader(context.assets.open(LABEL_NAME))).use { reader ->
             var line: String?
             val classList = ArrayList<String>()

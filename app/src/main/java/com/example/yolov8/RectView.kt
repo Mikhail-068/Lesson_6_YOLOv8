@@ -18,8 +18,8 @@ class RectView(context: Context, attributeSet: AttributeSet) : View(context, att
         it.color = Color.WHITE
     }
 
+    // функция для масштабирования прямоугольника, который обводит найденный объект
     fun transformRect(results: ArrayList<Result>) {
-        // scale 구하기
         val scaleX = width / DataProcess.INPUT_SIZE.toFloat()
         val scaleY = scaleX * 9f / 16f
         val realY = width * 9f / 16f
@@ -34,10 +34,14 @@ class RectView(context: Context, attributeSet: AttributeSet) : View(context, att
         this.results = results
     }
 
+    // функция для отрисовки рамки (прямоугольника), которая обводит найденный объект,
+    // и подписи на ее верхней стороне
     override fun onDraw(canvas: Canvas?) {
-        //그림 그리기
+        // перебираем список найденных объектов
         results?.forEach {
+            // рисуем прямоугольник - рамку
             canvas?.drawRect(it.rectF, findPaint(it.classIndex))
+            // рисуем подпись
             canvas?.drawText(
                 classes[it.classIndex] + ", " + round(it.score * 100) + "%",
                 it.rectF.left + 10,
@@ -48,20 +52,23 @@ class RectView(context: Context, attributeSet: AttributeSet) : View(context, att
         super.onDraw(canvas)
     }
 
+    // функция для получения списка сущностей, которых НС может распознать
     fun setClassLabel(classes: Array<String>) {
         this.classes = classes
     }
 
-    //paint 지정
+    // функция для получения настроек цвета и размера "кисти" для отрисовки рамки и текста
     private fun findPaint(classIndex: Int): Paint {
         val paint = Paint()
-        paint.style = Paint.Style.STROKE    // 빈 사각형 그림
-        paint.strokeWidth = 10.0f           // 굵기 10
-        paint.strokeCap = Paint.Cap.ROUND   // 끝을 뭉특하게
-        paint.strokeJoin = Paint.Join.ROUND // 끝 주위도 뭉특하게
-        paint.strokeMiter = 100f            // 뭉특한 정도는 100도
 
-        //임의로 지정한 색상
+        // настраиваем кисть
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 10.0f
+        paint.strokeCap = Paint.Cap.ROUND
+        paint.strokeJoin = Paint.Join.ROUND
+        paint.strokeMiter = 100f
+
+        // выбираем цвет на основании объекта, который будет обводить рамкой
         paint.color = when (classIndex) {
             0, 45, 18, 19, 22, 30, 42, 43, 44, 61, 71, 72 -> Color.WHITE
             1, 3, 14, 25, 37, 38, 79 -> Color.BLUE
