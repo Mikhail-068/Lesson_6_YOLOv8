@@ -22,8 +22,8 @@ class DataProcess(val context: Context) {
         const val BATCH_SIZE = 1
         const val INPUT_SIZE = 640
         const val PIXEL_SIZE = 3
-        const val FILE_NAME = "yolov8n.onnx"
-        const val LABEL_NAME = "yolov8n.txt"
+        const val FILE_NAME = "best_8n.onnx"
+        const val LABEL_NAME = "Labels.txt"
     }
 
     // функция для преобразования кадра с камеры в bitmap
