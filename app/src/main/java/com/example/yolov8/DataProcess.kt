@@ -121,9 +121,9 @@ class DataProcess(val context: Context) {
             var detectionClass: Int = -1
             var maxScore = 0f
             val classArray = FloatArray(classes.size)
-            // label 만 따로 빼서 1차원 배열을 만든다.(0~3은 좌표값임)
+            // Создаем одномерный массив, вычитая только метки
             System.arraycopy(output[i], 4, classArray, 0, classes.size)
-            // label 중에서 가장 큰 값을 선정한다.
+            // Выбираем наибольшее значение среди меток.
             for (j in classes.indices) {
                 if (classArray[j] > maxScore) {
                     detectionClass = j
@@ -131,13 +131,15 @@ class DataProcess(val context: Context) {
                 }
             }
 
-            //만약 80개의 coco dataset 중 가장 큰 확률값이 특정값을 (현재는 45% 확률) 넘어서면 해당 값을 저장한다.
+            //Если наибольшее значение вероятности превышает определенное значение (в настоящее время вероятность 45%),
+            // соответствующее значение сохраняется.
             if (maxScore > confidenceThreshold) {
                 val xPos = output[i][0]
                 val yPos = output[i][1]
                 val width = output[i][2]
                 val height = output[i][3]
-                //사각형은 화면 밖으로 나갈 수 없으니 화면을 넘기면 최대 화면 값을 가지게 한다.
+                //Поскольку прямоугольник не может выйти за пределы экрана,
+                // он имеет максимальное значение экрана при переворачивании экрана.
                 val rectF = RectF(
                     max(0f, xPos - width / 2f),
                     max(0f, yPos - height / 2f),
@@ -155,22 +157,22 @@ class DataProcess(val context: Context) {
         val list = ArrayList<Result>()
 
         for (i in classes.indices) {
-            //1.클래스 (라벨들) 중에서 가장 높은 확률값을 가졌던 클래스 찾기
+            //1.Находим класс с наибольшим значением вероятности среди классов (меток)
             val pq = PriorityQueue<Result>(50) { o1, o2 ->
                 o1.score.compareTo(o2.score)
             }
             val classResults = results.filter { it.classIndex == i }
             pq.addAll(classResults)
 
-            //NMS 처리
+
             while (pq.isNotEmpty()) {
-                // 큐 안에 속한 최대 확률값을 가진 class 저장
+                // Сохраняем класс с максимальной вероятностью принадлежности очереди
                 val detections = pq.toTypedArray()
                 val max = detections[0]
                 list.add(max)
                 pq.clear()
 
-                // 교집합 비율 확인하고 50%넘기면 제거
+                // Проверяем коэффициент пересечения и удаляем его, если он превышает 50%
                 for (k in 1 until detections.size) {
                     val detection = detections[k]
                     val rectF = detection.rectF
@@ -184,12 +186,12 @@ class DataProcess(val context: Context) {
         return list
     }
 
-    // 겹치는 비율 (교집합/합집합)
+    // коэффициент перекрытия (пересечение/объединение)
     private fun boxIOU(a: RectF, b: RectF): Float {
         return boxIntersection(a, b) / boxUnion(a, b)
     }
 
-    //교집합
+
     private fun boxIntersection(a: RectF, b: RectF): Float {
         // x1, x2 == 각 rect 객체의 중심 x or y값, w1, w2 == 각 rect 객체의 넓이 or 높이
         val w = overlap(
@@ -204,13 +206,13 @@ class DataProcess(val context: Context) {
         return if (w < 0 || h < 0) 0f else w * h
     }
 
-    //합집합
+
     private fun boxUnion(a: RectF, b: RectF): Float {
         val i: Float = boxIntersection(a, b)
         return (a.right - a.left) * (a.bottom - a.top) + (b.right - b.left) * (b.bottom - b.top) - i
     }
 
-    //서로 겹치는 부분의 길이
+
     private fun overlap(x1: Float, w1: Float, x2: Float, w2: Float): Float {
         val l1 = x1 - w1 / 2
         val l2 = x2 - w2 / 2
